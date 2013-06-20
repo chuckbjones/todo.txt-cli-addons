@@ -7,6 +7,12 @@ My custom addons for https://github.com/ginatrapani/todo.txt-cli
 Similar to https://github.com/paulroub/todo.txt-recurring-tasks, but allows for 
 Weekly, Monthly, Bimonthly, Quarterly, and Yearly recurrences.
 
+### Dependencies ###
+Requires a ruby interpreter. I've only tested it on 1.9.3. Let me know if it works
+on any other versions.
+
+Also requires the [todo-txt gem](https://github.com/samwho/todo-txt-gem) by @samwho.
+
 ### Usage ###
 Create a recur.txt file in your TODO_DIR and adds tasks in the following format.
 Then call `todo.sh recur` in a cron job every morning.
