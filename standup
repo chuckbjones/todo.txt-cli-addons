@@ -1,0 +1,105 @@
+#!/usr/bin/env ruby
+# Taken from https://github.com/civrot/todo_txt_actions/blob/master/standup
+# Modified to generate a weekly report instead of daily.
+
+require 'date'
+IMPEDIMENT_TAG = "@impediment"
+WORK_TAG = "@work"
+
+
+if ARGV[0] == "usage"
+  puts "  Standup Report:"
+  puts "    standup"
+  puts "      Generates a report of tasks completed in the last week, and tasks left to do"
+  puts "  "
+
+else
+
+  today = Date.today
+  cutoff = today - 7
+  recently_completed = Hash.new { |hash, key| hash[key] = [] }
+  incomplete = []
+  impediments = []
+
+
+  #read DONE file
+  done = File.read(ENV['DONE_FILE'])
+  done = done.split($/)
+  done.reverse!
+
+
+  # ==============================
+  #    generate the RECENT List
+  # ==============================
+
+  done.each { |item|
+    next unless item.include?(WORK_TAG)
+    data =  /x\s(?<date>\d{4}-\d{2}-\d{2})\s(?<task>.*)/.match(item)
+    task_date = Date.strptime(data[:date], '%Y-%m-%d')
+    #puts task_date
+    if task_date >= cutoff 
+      recently_completed[task_date] << data[:task]
+    end
+  }
+
+
+  #read TODO file
+  todo = File.read(ENV['TODO_FILE'])
+  todo = todo.split($/)
+  todo.each { |item| 
+    next unless item.include?(WORK_TAG)
+    data =  /x\s(?<date>\d{4}-\d{2}-\d{2})\s(?<task>.*)/.match(item)
+    if data
+      task_date = Date.strptime(data[:date], '%Y-%m-%d')
+      recently_completed[task_date] << data[:task]
+    elsif item.include?(IMPEDIMENT_TAG)
+      impediments.push(item)
+    else
+      incomplete.push(item)
+    end
+  }
+
+  # dump complete's list
+  days = recently_completed.keys.sort
+  days.each { |day|
+    if day == today
+      daystr = "Today - #{day.strftime("%d %b")}"
+    elsif day == today - 1
+      daystr = "Yesterday - #{day.strftime("%d %b")}"
+    else
+      daystr = day.strftime("%A - %d %b")
+    end
+
+    puts "\n========================================"
+    puts " #{daystr}"
+    puts "========================================"
+    recently_completed[day].each { |task|
+      puts "+ #{task}"
+    }
+  }
+
+  #dump incomplete's List
+  if incomplete.length > 0
+    puts "\n========================================"
+    puts " Incomplete: #{Date.today}"
+    puts "========================================"
+
+    incomplete.each { |task|
+      puts"- #{task}"
+    }
+  end
+
+  #dump IMPEDIMENT's List
+  if impediments.length > 0
+    puts "\n========================================"
+    puts " Impediments: #{Date.today}"
+    puts "========================================"
+
+    impediments.each { |task|
+      puts"! #{task}"
+    }
+  end
+
+  puts "\n"
+
+end

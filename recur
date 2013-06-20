@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+# 
+# recur.rb 
+#
+# Parses a recur.txt file in your TODO_DIR and adds tasks to your todo.txt file
+# if they match a date pattern for today.
+#
+# recur.txt Format:
+#   blank lines and comments (anything after a '#') are ignored
+#   Task lines must match this format: <freq>, <date> - <text>
+#
+# Freqs:
+# Weekly - date is day of week (default Sunday)
+# Monthly - date is day of month (default 1st)
+# Bimonthly - like Monthly, but skip every other month (Start with Jan, but can specify another start month)
+# Quarterly - like Bimonthly, but skip every two months
+# Yearly - date is month and day (default Jan 1)
+#
+# Examples:
+# Monthly, 28th - (A) Give dog heartworm medicine @home
+# Bimonthly, 1st - (B) Wash dog @home +chore
+# Quarterly, 1st - (A) Reorder dog treats @home
+# Yearly, July 1st - (A) Take dog to vet for shots, heartworm pills @car +errand
+
+require 'date'
+require 'todo-txt'
+
+MONTH_NAMES = [nil, "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+WDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+TODAY = Date.today
+
+RECUR_FILE = "#{ENV['TODO_DIR']}/recur.txt"
+TODO_LIST = Todo::List.new ENV['TODO_FILE']
+
+
+def add_todo(task)
+  system "#{ENV['TODO_SH']} add '#{task}'"
+end
+
+def parse_date_spec(str)
+  str = str.downcase
+  month = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/.match(str)
+  month = month ? MONTH_NAMES.index(month[0]) : 1 
+  day = /[0-9]+/.match(str)
+  day = day ? day[0].to_i : 1
+  Date.new(TODAY.year, month, day)
+end
+
+def parse_wday(str)
+ wday = /sun|mon|tue|wed|thu|fri|sat/.match(str) 
+ wday ? WDAY_NAMES.index(wday[0]) : 0
+end
+
+def should_add(data)
+
+  # datespec is a month/day in this year
+  datespec = parse_date_spec(data[:datespec])
+
+  case data[:freq].downcase
+  when 'weekly'
+    wday = parse_wday(data[:datespec])
+    return wday == TODAY.wday
+  when 'monthly'
+    return datespec.day == TODAY.day
+  when 'bimonthly'
+    return TODAY.month % 2 == datespec.month % 2
+  when 'quarterly'
+    return TODAY.month % 3 == datespec.month % 3
+  when 'yearly'
+    return datespec == TODAY
+  else
+    $stderr.puts "Invalid Freq: #{data[:freq]}"  
+  end
+  
+  false
+end
+
+def exists(raw)
+  task = Todo::Task.new raw
+  TODO_LIST.any? { |t| t.text == task.text }
+end
+
+if ARGV[0] == "usage"
+  puts "  Recurrence generator:"
+  puts "    recur"
+  puts "      Run daily in cron to add recurring tasks from recur.txt"
+  puts "      Format:"
+  puts "        Frequency, Date - Text"
+  puts "      Frequencies:"
+  puts "        Weekly - date is day of week (default Sunday)"
+  puts "        Monthly - date is day of month (default 1st)"
+  puts "        Bimonthly - like Monthly, but skip every other month (Start with Jan, but can specify another start month)"
+  puts "        Quarterly - like Bimonthly, but skip every two months"
+  puts "        Yearly - date is month and day (default Jan 1)"
+  puts "  "
+
+else
+  #read recur.txt file
+  lines = File.read(RECUR_FILE)
+  lines = lines.split($/)
+  lines.each do |item| 
+    # should be like "Monthly, 28th - Do Something"
+    item = item.sub( /#.*/, '').strip
+    data = /\s*(?<freq>[^\,]*),\s*(?<datespec>[^\-]*)-\s*(?<task>.*)/.match(item)
+    next unless data
+
+    next unless should_add(data)
+    if exists(data[:task])
+      puts "Exists: #{data[:task]}"
+    else
+      add_todo(data[:task]) 
+    end
+
+  end
+end
