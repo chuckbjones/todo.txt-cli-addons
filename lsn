@@ -1,0 +1,18 @@
+#!/bin/bash
+# List tasks with no priority
+
+action=$1
+shift
+
+[ "$action" = "usage" ] && {
+  echo "  List tasks with no priority. "
+  echo ""
+  exit
+}
+
+ORIG_TODOTXT_FINAL_FILTER="$TODOTXT_FINAL_FILTER"
+export TODOTXT_FINAL_FILTER="egrep -v '^ *[0-9]+ (\([A-Z]\)|x)' | $ORIG_TODOTXT_FINAL_FILTER"
+
+"$TODO_SH" -p command ls "$@"
+
+export TODOTXT_FINAL_FILTER="$ORIG_TODOTXT_FINAL_FILTER"

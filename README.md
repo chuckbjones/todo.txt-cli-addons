@@ -45,3 +45,6 @@ but I think I fixed a bug. I don't remember what it was, though.
 ## nav ##
 Taken from https://github.com/doegox/todo.txt-cli/blob/extras/todo.actions.d/nav,
 with no modifications.
+
+## lsn ##
+Lists tasks with no priority.
