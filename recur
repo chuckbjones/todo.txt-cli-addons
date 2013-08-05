@@ -63,9 +63,9 @@ def should_add(data)
   when 'monthly'
     return datespec.day == TODAY.day
   when 'bimonthly'
-    return TODAY.month % 2 == datespec.month % 2
+    return TODAY.month % 2 == datespec.month % 2 && datespec.day == TODAY.day
   when 'quarterly'
-    return TODAY.month % 3 == datespec.month % 3
+    return TODAY.month % 3 == datespec.month % 3 && datespec.day == TODAY.day
   when 'yearly'
     return datespec == TODAY
   else
