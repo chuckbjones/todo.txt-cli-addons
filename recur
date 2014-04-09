@@ -47,6 +47,7 @@ def parse_date_spec(str)
 end
 
 def parse_wday(str)
+ str = str.downcase
  wday = /sun|mon|tue|wed|thu|fri|sat/.match(str) 
  wday ? WDAY_NAMES.index(wday[0]) : 0
 end
